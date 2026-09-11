@@ -28,6 +28,9 @@ export const metadata: Metadata = {
     "SSC English",
     "SSC general awareness",
   ],
+  verification: {
+    google: "FgxrxAF7_iR6lkRx78gWCK9VZfChnWsmeQ-03l_-Ipg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
