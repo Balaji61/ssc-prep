@@ -25,7 +25,7 @@ export default function Home() {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden items-center gap-7 text-base font-semibold sm:flex">
+            <nav className="hidden items-center gap-6 text-base font-semibold sm:flex">
 
               <Link
                 href="/practice"
@@ -46,6 +46,20 @@ export default function Home() {
                 className="text-gray-700 transition hover:text-blue-700"
               >
                 Dashboard
+              </Link>
+
+              <Link
+                href="/login"
+                className="rounded-lg px-3 py-2 text-gray-700 transition hover:bg-blue-50 hover:text-blue-700"
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/signup"
+                className="rounded-lg bg-blue-700 px-4 py-2 text-white transition hover:bg-blue-800"
+              >
+                Sign Up
               </Link>
 
             </nav>
@@ -91,6 +105,22 @@ export default function Home() {
                 📊 Dashboard
               </Link>
 
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="mt-1 block rounded-xl px-4 py-3 text-base font-semibold text-gray-800 transition hover:bg-blue-50 hover:text-blue-700"
+              >
+                🔐 Login
+              </Link>
+
+              <Link
+                href="/signup"
+                onClick={() => setMenuOpen(false)}
+                className="mt-1 block rounded-xl bg-blue-700 px-4 py-3 text-base font-semibold text-white transition hover:bg-blue-800"
+              >
+                ✨ Sign Up
+              </Link>
+
             </nav>
           )}
 
@@ -113,8 +143,8 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-gray-700 sm:text-xl">
-            Practice SSC questions topic by topic and
-            prepare with realistic exam-style mock tests.
+            Practice SSC questions topic by topic and take
+            realistic mock tests to prepare for your exam.
           </p>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
@@ -142,7 +172,7 @@ export default function Home() {
       {/* Main cards */}
       <section className="px-5 pb-16">
 
-        <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2">
+        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2">
 
           {/* Practice */}
           <Link
@@ -203,7 +233,7 @@ export default function Home() {
             <p className="mt-3 leading-7 text-gray-700">
               Experience exam-style tests with mixed
               questions, timers, question navigation,
-              results and review.
+              results and detailed review.
             </p>
 
             <div className="mt-6 font-bold text-blue-700">
@@ -211,6 +241,47 @@ export default function Home() {
             </div>
 
           </Link>
+
+        </div>
+
+      </section>
+
+      {/* Account section */}
+      <section className="border-y bg-blue-50 px-5 py-14">
+
+        <div className="mx-auto max-w-4xl text-center">
+
+          <p className="font-bold text-blue-700">
+            YOUR PREPARATION
+          </p>
+
+          <h2 className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
+            Keep your SSC preparation organized
+          </h2>
+
+          <p className="mx-auto mt-4 max-w-2xl leading-7 text-gray-700">
+            Create an SSC PREP account to prepare for your exams
+            and access your personal dashboard. More progress
+            tracking features will be added over time.
+          </p>
+
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+
+            <Link
+              href="/signup"
+              className="rounded-xl bg-blue-700 px-6 py-3 font-bold text-white transition hover:bg-blue-800"
+            >
+              Create Free Account
+            </Link>
+
+            <Link
+              href="/login"
+              className="rounded-xl border-2 border-gray-300 bg-white px-6 py-3 font-bold text-gray-800 transition hover:border-blue-400 hover:bg-blue-50"
+            >
+              Login
+            </Link>
+
+          </div>
 
         </div>
 
@@ -227,16 +298,16 @@ export default function Home() {
           <div className="text-center">
 
             <p className="font-bold text-blue-700">
-              BUILT FOR PRACTICE
+              BUILT FOR SSC PREPARATION
             </p>
 
             <h2 className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              Everything you need to practice
+              Everything you need to prepare
             </h2>
 
             <p className="mx-auto mt-4 max-w-2xl text-gray-700">
-              Practice topic by topic or test yourself with
-              realistic SSC-style mock tests.
+              Practice topic by topic and test yourself with
+              realistic SSC mock tests.
             </p>
 
           </div>
@@ -258,13 +329,13 @@ export default function Home() {
             <Feature
               icon="🧭"
               title="Question Navigation"
-              text="Move between questions and jump directly using the question palette."
+              text="Move between questions and use the question palette."
             />
 
             <Feature
               icon="📊"
               title="Review Answers"
-              text="See your correct and wrong answers after submitting."
+              text="See your correct, wrong and unanswered questions."
             />
 
           </div>
@@ -335,9 +406,27 @@ export default function Home() {
             © 2026 SSC PREP
           </p>
 
-          <p>
-            Built for SSC preparation
-          </p>
+          <div className="flex items-center gap-5">
+
+            <Link
+              href="/feedback"
+              className="font-semibold text-gray-600 transition hover:text-blue-700"
+            >
+              Feedback
+            </Link>
+
+            <Link
+              href="/contact"
+              className="font-semibold text-gray-600 transition hover:text-blue-700"
+            >
+              Contact
+            </Link>
+
+            <p>
+              Built for SSC preparation
+            </p>
+
+          </div>
 
         </div>
 
