@@ -6,59 +6,63 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
-const MOCK_SECTIONS = [
+const SUBJECTS = [
   {
-    name: "General Intelligence and Reasoning",
-    shortName: "Reasoning",
-    subject: "reasoning",
+    dbSubject: "reasoning",
+    section: "Reasoning",
   },
   {
-    name: "General Awareness",
-    shortName: "General Awareness",
-    subject: "General Studies",
+    dbSubject: "General Studies",
+    section: "General Awareness",
   },
   {
-    name: "Quantitative Aptitude",
-    shortName: "Quantitative Aptitude",
-    subject: "Quantitative Aptitude",
+    dbSubject: "Quantitative Aptitude",
+    section: "Quantitative Aptitude",
   },
   {
-    name: "English Comprehension",
-    shortName: "English",
-    subject: "English",
+    dbSubject: "English",
+    section: "English",
   },
 ];
 
-function shuffle<T>(array: T[]): T[] {
-  const result = [...array];
+const QUESTIONS_PER_SECTION = 25;
 
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(
-      Math.random() * (i + 1)
-    );
-
-    [result[i], result[j]] = [
-      result[j],
-      result[i],
-    ];
-  }
-
-  return result;
-}
+const CORRECT_MARKS = 2;
+const NEGATIVE_MARKS = 0.5;
 
 // ==========================================================
-// GET — LOAD MOCK TEST
+// GET — LOAD PREVIOUS YEAR MOCK TEST
 // ==========================================================
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const sections = [];
+    const { searchParams } = new URL(request.url);
 
-    for (const section of MOCK_SECTIONS) {
+    const year = searchParams.get("year");
+
+    if (!year) {
+      return NextResponse.json(
+        {
+          error: "Year is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const examName = `SSC CGL ${year}`;
+
+    const allQuestions: any[] = [];
+
+    // ======================================================
+    // LOAD EACH SECTION
+    // ======================================================
+
+    for (const subject of SUBJECTS) {
       const { data, error } = await supabase
         .from("questions")
         .select(`
           question_id,
+          exam_name,
           subject,
           category,
           topic,
@@ -66,9 +70,11 @@ export async function GET() {
           option_a,
           option_b,
           option_c,
-          option_d
+          option_d,
+          explanation
         `)
-        .eq("subject", section.subject)
+        .eq("exam_name", examName)
+        .eq("subject", subject.dbSubject)
         .not("question_text", "is", null)
         .not("option_a", "is", null)
         .not("option_b", "is", null)
@@ -78,48 +84,91 @@ export async function GET() {
 
       if (error) {
         console.error(
-          `Supabase error for ${section.shortName}:`,
+          `Supabase error for ${subject.section}:`,
           error
         );
 
         return NextResponse.json(
           {
             error:
-              `Database error while loading ${section.shortName}: ${error.message}`,
+              `Database error while loading ${subject.section}: ${error.message}`,
           },
           { status: 500 }
         );
       }
 
-      if (!data || data.length < 25) {
+      if (!data || data.length < QUESTIONS_PER_SECTION) {
         return NextResponse.json(
           {
             error:
-              `${section.shortName} has only ${
+              `${subject.section} has only ${
                 data?.length ?? 0
-              } usable questions. 25 are required.`,
+              } usable questions for ${examName}. 25 are required.`,
           },
-          { status: 500 }
+          { status: 400 }
         );
       }
 
-      const selectedQuestions =
-        shuffle(data).slice(0, 25);
+      // ====================================================
+      // RANDOMIZE ONLY INSIDE THIS SECTION
+      // ====================================================
 
-      sections.push({
-        name: section.name,
-        shortName: section.shortName,
-        duration: 15 * 60,
-        questions: selectedQuestions,
-      });
+      const shuffled = [...data];
+
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(
+          Math.random() * (i + 1)
+        );
+
+        [shuffled[i], shuffled[j]] = [
+          shuffled[j],
+          shuffled[i],
+        ];
+      }
+
+      const selectedQuestions = shuffled
+        .slice(0, QUESTIONS_PER_SECTION)
+        .map((question, index) => ({
+          ...question,
+
+          section: subject.section,
+
+          question_number: index + 1,
+        }));
+
+      allQuestions.push(...selectedQuestions);
     }
 
+    // ======================================================
+    // ADD OVERALL QUESTION NUMBERS
+    // ======================================================
+
+    const numberedQuestions = allQuestions.map(
+      (question, index) => ({
+        ...question,
+
+        test_question_number: index + 1,
+      })
+    );
+
+    // ======================================================
+    // RETURN TEST
+    // ======================================================
+
     return NextResponse.json({
-      sections,
+      success: true,
+
+      year,
+
+      exam_name: examName,
+
+      total_questions: numberedQuestions.length,
+
+      questions: numberedQuestions,
     });
   } catch (error) {
     console.error(
-      "Mock test GET error:",
+      "Previous year mock GET error:",
       error
     );
 
@@ -128,7 +177,7 @@ export async function GET() {
         error:
           error instanceof Error
             ? error.message
-            : "Unable to load mock test.",
+            : "Unable to load previous year mock test.",
       },
       { status: 500 }
     );
@@ -145,6 +194,12 @@ export async function POST(
   try {
     const body = await request.json();
 
+    // ======================================================
+    // GET REQUEST DATA
+    // ======================================================
+
+    const year = body?.year;
+
     const answers =
       (body?.answers || {}) as Record<
         string,
@@ -160,6 +215,23 @@ export async function POST(
         boolean
       >;
 
+    // ======================================================
+    // VALIDATE YEAR
+    // ======================================================
+
+    if (!year) {
+      return NextResponse.json(
+        {
+          error: "Year is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ======================================================
+    // VALIDATE QUESTION IDS
+    // ======================================================
+
     if (
       !Array.isArray(questionIds) ||
       questionIds.length === 0
@@ -173,34 +245,59 @@ export async function POST(
       );
     }
 
+    if (questionIds.length !== 100) {
+      return NextResponse.json(
+        {
+          error:
+            "A complete previous year test must contain 100 questions.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const examName = `SSC CGL ${year}`;
+
+    console.log(
+      `Previous year test submission received: ${examName}`
+    );
+
+    console.log(
+      `Questions to grade: ${questionIds.length}`
+    );
+
     // ======================================================
     // GET QUESTIONS + CORRECT ANSWERS
     // ======================================================
 
-    const { data, error } =
-      await supabase
-        .from("questions")
-        .select(`
-          question_id,
-          subject,
-          category,
-          topic,
-          question_text,
-          option_a,
-          option_b,
-          option_c,
-          option_d,
-          correct_option,
-          explanation
-        `)
-        .in(
-          "question_id",
-          questionIds
-        );
+    const { data, error } = await supabase
+      .from("questions")
+      .select(`
+        question_id,
+        exam_name,
+        subject,
+        category,
+        topic,
+        question_text,
+        option_a,
+        option_b,
+        option_c,
+        option_d,
+        correct_option,
+        explanation
+      `)
+      .eq("exam_name", examName)
+      .in(
+        "question_id",
+        questionIds
+      );
+
+    // ======================================================
+    // DATABASE ERROR
+    // ======================================================
 
     if (error) {
       console.error(
-        "Supabase review error:",
+        "Supabase previous year grading error:",
         error
       );
 
@@ -213,6 +310,10 @@ export async function POST(
       );
     }
 
+    // ======================================================
+    // QUESTIONS NOT FOUND
+    // ======================================================
+
     if (!data) {
       return NextResponse.json(
         {
@@ -220,6 +321,20 @@ export async function POST(
             "Questions could not be found.",
         },
         { status: 500 }
+      );
+    }
+
+    if (data.length !== questionIds.length) {
+      console.error(
+        `Expected ${questionIds.length} questions but received ${data.length}.`
+      );
+
+      return NextResponse.json(
+        {
+          error:
+            `Some questions could not be found for SSC CGL ${year}. Expected ${questionIds.length}, received ${data.length}.`,
+        },
+        { status: 400 }
       );
     }
 
@@ -240,7 +355,9 @@ export async function POST(
     // ======================================================
 
     let correct = 0;
+
     let wrong = 0;
+
     let unanswered = 0;
 
     // ======================================================
@@ -256,15 +373,39 @@ export async function POST(
           return null;
         }
 
+        // --------------------------------------------------
+        // USER ANSWER
+        // --------------------------------------------------
+
         const selectedAnswer =
           answers[questionId];
 
         const isUnanswered =
-          selectedAnswer ===
-            null ||
-          selectedAnswer ===
-            undefined ||
+          selectedAnswer === null ||
+          selectedAnswer === undefined ||
           selectedAnswer === "";
+
+        // --------------------------------------------------
+        // NORMALIZE ANSWERS
+        // --------------------------------------------------
+
+        const normalizedSelected =
+          isUnanswered
+            ? null
+            : String(selectedAnswer)
+                .trim()
+                .toUpperCase();
+
+        const normalizedCorrect =
+          String(
+            question.correct_option
+          )
+            .trim()
+            .toUpperCase();
+
+        // --------------------------------------------------
+        // DETERMINE STATUS
+        // --------------------------------------------------
 
         let status:
           | "correct"
@@ -273,33 +414,31 @@ export async function POST(
 
         if (isUnanswered) {
           unanswered++;
+
           status = "unanswered";
+        } else if (
+          normalizedSelected ===
+          normalizedCorrect
+        ) {
+          correct++;
+
+          status = "correct";
         } else {
-          const selected =
-            String(
-              selectedAnswer
-            ).toLowerCase();
+          wrong++;
 
-          const correctAnswer =
-            String(
-              question.correct_option
-            ).toLowerCase();
-
-          if (
-            selected ===
-            correctAnswer
-          ) {
-            correct++;
-            status = "correct";
-          } else {
-            wrong++;
-            status = "wrong";
-          }
+          status = "wrong";
         }
+
+        // --------------------------------------------------
+        // RETURN REVIEW QUESTION
+        // --------------------------------------------------
 
         return {
           question_id:
             question.question_id,
+
+          exam_name:
+            question.exam_name,
 
           subject:
             question.subject,
@@ -326,12 +465,10 @@ export async function POST(
             question.option_d,
 
           selected_option:
-            isUnanswered
-              ? null
-              : selectedAnswer,
+            normalizedSelected,
 
           correct_option:
-            question.correct_option,
+            normalizedCorrect,
 
           explanation:
             question.explanation || null,
@@ -349,55 +486,115 @@ export async function POST(
           question
         ): question is NonNullable<
           typeof question
-        > => question !== null
+        > =>
+          question !== null
       );
 
     // ======================================================
     // MARKING
+    // SSC CGL STYLE
+    // +2 CORRECT
+    // -0.50 WRONG
     // ======================================================
 
-    const attempted =
+    const answered =
       correct + wrong;
 
     const positiveMarks =
-      correct * 2;
+      correct * CORRECT_MARKS;
 
     const negativeMarks =
-      wrong * 0.5;
+      wrong * NEGATIVE_MARKS;
 
     const finalScore =
       positiveMarks -
       negativeMarks;
 
-    const maxMarks = 200;
+    const maxScore = 200;
+
+    // ======================================================
+    // PERCENTAGE
+    // ======================================================
 
     const percentage =
-      (finalScore / maxMarks) *
-      100;
+      Number(
+        (
+          (finalScore / maxScore) *
+          100
+        ).toFixed(2)
+      );
+
+    // ======================================================
+    // ACCURACY
+    // ======================================================
 
     const accuracy =
-      attempted > 0
-        ? (correct / attempted) *
-          100
+      answered > 0
+        ? Number(
+            (
+              (correct / answered) *
+              100
+            ).toFixed(2)
+          )
         : 0;
 
+    // ======================================================
+    // MARKED COUNT
+    // ======================================================
+
+    const markedCount =
+      Object.values(marked).filter(
+        Boolean
+      ).length;
+
+    // ======================================================
+    // LOG RESULT
+    // ======================================================
+
+    console.log(
+      `Previous year result: Correct=${correct}, Wrong=${wrong}, Unanswered=${unanswered}, Score=${finalScore}`
+    );
+
+    // ======================================================
+    // RETURN RESULT
+    // ======================================================
+
     return NextResponse.json({
-      totalQuestions: 100,
-      attempted,
-      correct,
-      wrong,
+      success: true,
+
+      year,
+
+      exam_name: examName,
+
+      total_questions: 100,
+
+      answered,
+
       unanswered,
-      positiveMarks,
-      negativeMarks,
-      finalScore,
-      maxMarks,
+
+      correct,
+
+      wrong,
+
+      positive_marks: positiveMarks,
+
+      negative_marks: negativeMarks,
+
+      final_score: finalScore,
+
+      max_score: maxScore,
+
       percentage,
+
       accuracy,
+
+      marked_count: markedCount,
+
       review,
     });
   } catch (error) {
     console.error(
-      "Mock test POST error:",
+      "Previous year mock POST error:",
       error
     );
 
@@ -406,7 +603,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Unable to calculate mock test result.",
+            : "Unable to calculate previous year mock test result.",
       },
       { status: 500 }
     );
