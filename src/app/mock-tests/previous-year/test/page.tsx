@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -136,7 +141,57 @@ function buildSections(
   }));
 }
 
+/*
+ * IMPORTANT:
+ * This outer component provides the Suspense boundary
+ * required by Next.js for useSearchParams().
+ */
 export default function PreviousYearTestPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50">
+          <header className="border-b bg-white">
+            <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+              <Link
+                href="/"
+                className="text-2xl font-extrabold text-blue-800"
+              >
+                SSC PREP
+              </Link>
+
+              <span className="font-semibold text-gray-700">
+                SSC CGL Previous Year Mock
+              </span>
+            </div>
+          </header>
+
+          <div className="flex min-h-[70vh] items-center justify-center px-5">
+            <div className="text-center">
+              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-700" />
+
+              <h1 className="mt-6 text-xl font-bold text-gray-900">
+                Loading test...
+              </h1>
+
+              <p className="mt-2 text-gray-600">
+                Preparing your previous year mock test.
+              </p>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <PreviousYearTestContent />
+    </Suspense>
+  );
+}
+
+/*
+ * The original test page is now inside Suspense.
+ * The actual mock-test functionality remains unchanged.
+ */
+function PreviousYearTestContent() {
   const searchParams = useSearchParams();
 
   const year =
@@ -582,10 +637,6 @@ export default function PreviousYearTestPage() {
       setSubmitting(true);
       setError("");
 
-      // ------------------------------------------------------
-      // GET ALL 100 QUESTION IDS
-      // ------------------------------------------------------
-
       const questionIds =
         sections.flatMap(
           (section) =>
@@ -602,10 +653,6 @@ export default function PreviousYearTestPage() {
           `The test contains ${questionIds.length} questions instead of 100.`
         );
       }
-
-      // ------------------------------------------------------
-      // SEND TO PREVIOUS YEAR POST API
-      // ------------------------------------------------------
 
       const response =
         await fetch(
@@ -630,20 +677,12 @@ export default function PreviousYearTestPage() {
       const data =
         await response.json();
 
-      // ------------------------------------------------------
-      // HANDLE API ERROR
-      // ------------------------------------------------------
-
       if (!response.ok) {
         throw new Error(
           data.error ||
             "Unable to calculate the test result."
         );
       }
-
-      // ------------------------------------------------------
-      // VERIFY RESULT
-      // ------------------------------------------------------
 
       if (
         typeof data.final_score !==
@@ -653,10 +692,6 @@ export default function PreviousYearTestPage() {
           "The server did not return a valid test score."
         );
       }
-
-      // ------------------------------------------------------
-      // CREATE RESULT
-      // ------------------------------------------------------
 
       const finalResult: Result = {
         success:
@@ -721,20 +756,12 @@ export default function PreviousYearTestPage() {
             : [],
       };
 
-      // ------------------------------------------------------
-      // SAVE RESULT FOR REVIEW PAGE
-      // ------------------------------------------------------
-
       sessionStorage.setItem(
         "ssc_previous_year_mock_result",
         JSON.stringify(
           finalResult
         )
       );
-
-      // ------------------------------------------------------
-      // SHOW RESULT ON SAME PAGE
-      // ------------------------------------------------------
 
       setResult(
         finalResult
@@ -907,8 +934,6 @@ export default function PreviousYearTestPage() {
         </header>
 
         <div className="mx-auto max-w-5xl px-5 py-10">
-          {/* SUCCESS */}
-
           <div className="text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-4xl font-extrabold text-green-700">
               ✓
@@ -922,8 +947,6 @@ export default function PreviousYearTestPage() {
               SSC CGL {year} Previous Year Mock Test
             </p>
           </div>
-
-          {/* SCORE */}
 
           <div className="mt-8 rounded-3xl border border-gray-200 bg-white p-7 text-center shadow-sm">
             <p className="text-sm font-bold uppercase tracking-wide text-gray-500">
@@ -948,8 +971,6 @@ export default function PreviousYearTestPage() {
               </span>
             </div>
           </div>
-
-          {/* COUNTS */}
 
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
             <ResultCard
@@ -977,8 +998,6 @@ export default function PreviousYearTestPage() {
             />
           </div>
 
-          {/* MARKS */}
-
           <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-extrabold text-gray-900">
               Marks Breakdown
@@ -1004,8 +1023,6 @@ export default function PreviousYearTestPage() {
               />
             </div>
           </div>
-
-          {/* SUMMARY */}
 
           <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-extrabold text-gray-900">
@@ -1064,8 +1081,6 @@ export default function PreviousYearTestPage() {
             </div>
           </div>
 
-          {/* BUTTONS */}
-
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <Link
               href="/mock-tests/previous-year"
@@ -1098,10 +1113,6 @@ export default function PreviousYearTestPage() {
   ) {
     return null;
   }
-
-  // ==========================================================
-  // CURRENT QUESTION
-  // ==========================================================
 
   const selectedAnswer =
     answers[
@@ -1137,8 +1148,6 @@ export default function PreviousYearTestPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* HEADER */}
-
       <header className="sticky top-0 z-50 border-b bg-white shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-5">
           <Link
@@ -1178,8 +1187,6 @@ export default function PreviousYearTestPage() {
         </div>
       </header>
 
-      {/* MOBILE TITLE */}
-
       <div className="border-b bg-white px-4 py-3 sm:hidden">
         <p className="text-sm font-bold text-gray-900">
           SSC CGL {year} Previous Year Mock Test
@@ -1189,8 +1196,6 @@ export default function PreviousYearTestPage() {
           {currentSection.name}
         </p>
       </div>
-
-      {/* SECTION BAR */}
 
       <div className="bg-blue-950 text-white">
         <div className="mx-auto grid max-w-7xl grid-cols-2 md:grid-cols-4">
@@ -1235,8 +1240,6 @@ export default function PreviousYearTestPage() {
         </div>
       </div>
 
-      {/* SUBMISSION ERROR */}
-
       {error && (
         <div className="mx-auto mt-4 max-w-7xl px-4 sm:px-5">
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
@@ -1245,12 +1248,8 @@ export default function PreviousYearTestPage() {
         </div>
       )}
 
-      {/* MAIN */}
-
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-5 sm:py-7">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-          {/* QUESTION */}
-
           <section>
             <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-200 p-5 sm:p-6">
@@ -1295,8 +1294,6 @@ export default function PreviousYearTestPage() {
                     currentQuestion.question_text
                   }
                 </h2>
-
-                {/* OPTIONS */}
 
                 <div className="mt-7 space-y-3">
                   {(
@@ -1361,8 +1358,6 @@ export default function PreviousYearTestPage() {
                   )}
                 </div>
 
-                {/* CONTROLS */}
-
                 <div className="mt-7 flex flex-col gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
@@ -1419,8 +1414,6 @@ export default function PreviousYearTestPage() {
               </div>
             </div>
 
-            {/* FINISH SECTION */}
-
             <button
               type="button"
               onClick={
@@ -1440,11 +1433,7 @@ export default function PreviousYearTestPage() {
             </p>
           </section>
 
-          {/* SIDEBAR */}
-
           <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            {/* CANDIDATE */}
-
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-xl">
@@ -1462,8 +1451,6 @@ export default function PreviousYearTestPage() {
                 </div>
               </div>
             </div>
-
-            {/* OVERALL PROGRESS */}
 
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
@@ -1489,8 +1476,6 @@ export default function PreviousYearTestPage() {
                 {totalAnswered} questions answered
               </p>
             </div>
-
-            {/* QUESTION PALETTE */}
 
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
@@ -1589,8 +1574,6 @@ export default function PreviousYearTestPage() {
               </div>
             </div>
 
-            {/* SECTION INFO */}
-
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="font-extrabold text-gray-900">
                 Section Information
@@ -1628,8 +1611,6 @@ export default function PreviousYearTestPage() {
               </div>
             </div>
 
-            {/* SUBMIT ENTIRE TEST */}
-
             <button
               type="button"
               onClick={() => {
@@ -1648,8 +1629,6 @@ export default function PreviousYearTestPage() {
             >
               Submit Test
             </button>
-
-            {/* NOTICE */}
 
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
               <p className="text-sm font-extrabold text-blue-900">

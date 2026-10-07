@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Question = {
@@ -25,7 +25,7 @@ const OPTIONS = [
   { key: "D", field: "option_d" },
 ] as const;
 
-export default function PreviousYearPracticeQuestionsPage() {
+function PreviousYearPracticeQuestionsContent() {
   const searchParams = useSearchParams();
 
   const year = searchParams.get("year") || "2025";
@@ -313,7 +313,9 @@ export default function PreviousYearPracticeQuestionsPage() {
                     return (
                       <button
                         key={count}
-                        disabled={!available || loadingQuestions}
+                        disabled={
+                          !available || loadingQuestions
+                        }
                         onClick={() =>
                           available &&
                           startPractice(count)
@@ -563,5 +565,23 @@ export default function PreviousYearPracticeQuestionsPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function PreviousYearPracticeQuestionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="rounded-xl bg-white px-6 py-5 shadow-sm">
+            <p className="text-gray-600">
+              Loading practice...
+            </p>
+          </div>
+        </main>
+      }
+    >
+      <PreviousYearPracticeQuestionsContent />
+    </Suspense>
   );
 }
